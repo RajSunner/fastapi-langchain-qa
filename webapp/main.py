@@ -1,17 +1,24 @@
 import os
 import base64
-from typing import Union
+import json
+from typing import Union, Any
 from os.path import dirname, abspath, join
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from webapp.chain import create_chain
 
 current_dir = dirname(abspath(__file__))
 static_path = join(current_dir, "static")
 
 app = FastAPI()
 app.mount("/ui", StaticFiles(directory=static_path), name="ui")
+
+
+class Query(BaseModel):
+    question: str
+    history: Any
 
 
 class Body(BaseModel):
@@ -35,3 +42,14 @@ def generate(body: Body):
     """
     string = base64.b64encode(os.urandom(64))[:body.length].decode('utf-8')
     return {'token': string}
+
+
+@app.post("/llm")
+async def query(request: Request, query: Query):
+    key = request.headers.get('X-Api-Key')
+
+    chain = create_chain(key)
+    answer = chain.run(query)
+    history = json.dumps(query.history)
+    results = {"answer": answer, "history": history}
+    return results
