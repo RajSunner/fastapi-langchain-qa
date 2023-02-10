@@ -3,6 +3,6 @@ pydantic
 uvicorn[standard]
 langchain
 openai
-sentence-transformers
 faiss-cpu
 weaviate-client
+PyPDF2
